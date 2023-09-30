@@ -1,9 +1,10 @@
 package convert
 
 import (
-	"filepath"
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 type extractPDFImages struct {
@@ -16,6 +17,8 @@ func (c extractPDFImages) run() error {
 		return err
 	}
 
+	path := filepath.Join(c.InputDirPath, files[0].Name())
+
 	if err := os.Chdir(c.InputDirPath); err != nil {
 		return err
 	}
@@ -24,10 +27,12 @@ func (c extractPDFImages) run() error {
 	// poppler-utils must be installed
 	args := []string{
 		"-all",
-		filepath.Join(c.InputDirPath, files[0].Name()),
+		path,
 		"image",
 	}
-	if err := exec.Command("pdfimages", args...).Run(); err != nil {
+	out, err := exec.Command("pdfimages", args...).CombinedOutput()
+	if err != nil {
+		log.Print(string(out))
 		return err
 	}
 
