@@ -70,12 +70,12 @@ func (c generateJPGImages) run() error {
 					}
 					sizeArgs := make([]string, 0, 14)
 					if width <= height {
-						if 2000 < height {
-							sizeArgs = append(sizeArgs, "-resize", "x2000")
+						if 2500 < height {
+							sizeArgs = append(sizeArgs, "-resize", "x2500")
 						}
 					} else {
-						if 2000 < width {
-							sizeArgs = append(sizeArgs, "-resize", "2000x")
+						if 2500 < width {
+							sizeArgs = append(sizeArgs, "-resize", "2500x")
 						}
 					}
 
