@@ -1,7 +1,7 @@
 package convert
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,12 +12,14 @@ type extractPDFImages struct {
 }
 
 func (c extractPDFImages) run() error {
-	files, err := os.ReadDir(c.InputDirPath)
+	slog.Info("start runner", "type", "extractPDFImages", "path", c.InputDirPath)
+
+	entries, err := os.ReadDir(c.InputDirPath)
 	if err != nil {
 		return err
 	}
 
-	path := filepath.Join(c.InputDirPath, files[0].Name())
+	path := filepath.Join(c.InputDirPath, entries[0].Name())
 
 	if err := os.Chdir(c.InputDirPath); err != nil {
 		return err
@@ -25,6 +27,7 @@ func (c extractPDFImages) run() error {
 
 	// Extract images from PDF file
 	// poppler-utils must be installed
+	slog.Debug("extracting images from PDF file", "path", path)
 	args := []string{
 		"-all",
 		path,
@@ -32,7 +35,7 @@ func (c extractPDFImages) run() error {
 	}
 	out, err := exec.Command("pdfimages", args...).CombinedOutput()
 	if err != nil {
-		log.Print(string(out))
+		slog.Error("failed to extract images from PDF file", "path", path, "msg", string(out))
 		return err
 	}
 
@@ -40,6 +43,8 @@ func (c extractPDFImages) run() error {
 	if err := os.Remove(path); err != nil {
 		return err
 	}
+
+	slog.Info("successfully terminate runner", "type", "extractPDFImages", "path", c.InputDirPath)
 
 	return nil
 }

@@ -2,6 +2,7 @@
 package convert
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -13,9 +14,12 @@ type runner interface {
 type Converter struct {
 	InputDirPath  string
 	OutputDirPath string
+	Concurrency   int
 }
 
 func (c Converter) Run() error {
+	slog.Info("start converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
+
 	files, err := os.ReadDir(c.InputDirPath)
 	if err != nil {
 		return err
@@ -30,12 +34,21 @@ func (c Converter) Run() error {
 		}
 	}
 
+	deleteRunner := &deleteWhiteImages{
+		Converter: c,
+	}
+	if err := deleteRunner.run(); err != nil {
+		return err
+	}
+
 	generateRunner := &generateJPGImages{
 		Converter: c,
 	}
 	if err := generateRunner.run(); err != nil {
 		return err
 	}
+
+	slog.Info("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
 
 	return nil
 }
