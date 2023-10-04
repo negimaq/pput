@@ -2,6 +2,7 @@
 package convert
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ type Converter struct {
 	InputDirPath  string
 	OutputDirPath string
 	Concurrency   int
+	Mode          string
 }
 
 func (c Converter) Run() error {
@@ -41,11 +43,15 @@ func (c Converter) Run() error {
 		return err
 	}
 
-	generateRunner := &generateJPGImages{
-		Converter: c,
-	}
-	if err := generateRunner.run(); err != nil {
-		return err
+	if c.Mode == "jpg" {
+		generateRunner := &generateJPGImages{
+			Converter: c,
+		}
+		if err := generateRunner.run(); err != nil {
+			return err
+		}
+	} else {
+		return errors.New("specified mode does not exist")
 	}
 
 	slog.Info("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)

@@ -40,6 +40,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	mode := getEnv("MODE", "jpg")
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
 	slog.Info("start pput", "numConverters", numConverters, "concurrency", concurrency)
 
 	entries, err := os.ReadDir(inputDir)
@@ -64,6 +70,7 @@ func main() {
 					InputDirPath:  filepath.Join(inputDir, dirName),
 					OutputDirPath: filepath.Join(outputDir, dirName),
 					Concurrency:   concurrency,
+					Mode:          mode,
 				}
 				if err := c.Run(); err != nil {
 					slog.Error(err.Error())

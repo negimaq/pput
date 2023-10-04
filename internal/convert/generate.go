@@ -13,6 +13,34 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// Check image size
+// imagemagick must be installed
+func getImageSize(filePath string) (int, int, error) {
+	slog.Debug("checking image size", "path", filePath)
+	checkArgs := []string{
+		"-format", "%w,%h",
+		filePath,
+	}
+	out, err := exec.Command("identify", checkArgs...).Output()
+	if err != nil {
+		slog.Error("failed to check white image", "path", filePath)
+		return 0, 0, err
+	}
+	size := strings.Split(string(out), ",")
+	width, err := strconv.Atoi(size[0])
+	if err != nil {
+		slog.Error("failed to get width", "path", filePath)
+		return 0, 0, err
+	}
+	height, err := strconv.Atoi(size[1])
+	if err != nil {
+		slog.Error("failed to get height", "path", filePath)
+		return 0, 0, err
+	}
+
+	return width, height, nil
+}
+
 type generateJPGImages struct {
 	Converter
 }
@@ -45,27 +73,8 @@ func (c generateJPGImages) run() error {
 					slog.Warn("JPG image generation canceled", "path", inputFilePath)
 					return nil
 				default:
-					// Check image size
-					// imagemagick must be installed
-					slog.Debug("checking image size", "path", inputFilePath)
-					CheckArgs := []string{
-						"-format", "%w,%h",
-						inputFilePath,
-					}
-					out, err := exec.Command("identify", CheckArgs...).Output()
+					width, height, err := getImageSize(inputFilePath)
 					if err != nil {
-						slog.Error("failed to check white image", "path", inputFilePath)
-						return err
-					}
-					size := strings.Split(string(out), ",")
-					width, err := strconv.Atoi(size[0])
-					if err != nil {
-						slog.Error("failed to get width", "path", inputFilePath)
-						return err
-					}
-					height, err := strconv.Atoi(size[1])
-					if err != nil {
-						slog.Error("failed to get height", "path", inputFilePath)
 						return err
 					}
 					sizeArgs := make([]string, 0, 14)
@@ -92,7 +101,7 @@ func (c generateJPGImages) run() error {
 						inputFilePath,
 					}
 					convertArgs := append(sizeArgs, otherArgs...)
-					out, err = exec.Command("mogrify", convertArgs...).CombinedOutput()
+					out, err := exec.Command("mogrify", convertArgs...).CombinedOutput()
 					if err != nil {
 						slog.Error("failed to generate JPG image", "path", inputFilePath, "msg", string(out))
 						return err
