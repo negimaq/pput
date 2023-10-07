@@ -6,8 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
+
+	"github.com/lmittmann/tint"
 
 	"github.com/negimaq/pput/internal/convert"
+	"github.com/negimaq/pput/internal/upload"
 )
 
 var (
@@ -23,8 +27,24 @@ func getEnv(key, defaultValue string) string {
 }
 
 func init() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
+	isDebug, err := strconv.ParseBool(getEnv("DEBUG", "false"))
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	var level slog.Level
+	if isDebug {
+		level = slog.LevelDebug
+	} else {
+		level = slog.LevelInfo
+	}
+	slog.SetDefault(slog.New(
+		tint.NewHandler(os.Stdout, &tint.Options{
+			Level:      level,
+			TimeFormat: time.RFC3339,
+		}),
+	))
 }
 
 func main() {
@@ -40,15 +60,48 @@ func main() {
 		os.Exit(1)
 	}
 
-	mode := getEnv("MODE", "jpg")
+	converterMode := getEnv("CONVERTER_MODE", "jpg")
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
-	slog.Info("start pput", "numConverters", numConverters, "concurrency", concurrency)
+	uploaderMode := getEnv("UPLOADER_MODE", "nextcloud")
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
-	entries, err := os.ReadDir(inputDir)
+	root := getEnv("ROOT", "")
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	} else if root == "" {
+		slog.Error("failed to get ROOT")
+		os.Exit(1)
+	}
+
+	user := getEnv("USER", "")
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	} else if user == "" {
+		slog.Error("failed to get USER")
+		os.Exit(1)
+	}
+
+	password := getEnv("PASSWORD", "")
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	} else if password == "" {
+		slog.Error("failed to get PASSWORD")
+		os.Exit(1)
+	}
+
+	slog.Debug("start pput", "numConverters", numConverters, "concurrency", concurrency)
+
+	parentEntries, err := os.ReadDir(inputDir)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -57,26 +110,54 @@ func main() {
 	wg := &sync.WaitGroup{}
 	sem := make(chan struct{}, numConverters)
 
-	for _, e := range entries {
-		if e.IsDir() {
-			sem <- struct{}{}
+	for _, pe := range parentEntries {
+		if !pe.IsDir() {
+			slog.Debug("the entry is not directory (skip)", "path", filepath.Join(inputDir, pe.Name()))
+			continue
+		}
+		childEntries, err := os.ReadDir(filepath.Join(inputDir, pe.Name()))
+		if err != nil {
+			slog.Warn(err.Error())
+			continue
+		}
 
+		for _, ce := range childEntries {
+			if !ce.IsDir() {
+				slog.Info("the entry is not directory (skip)", "path", filepath.Join(inputDir, pe.Name(), ce.Name()))
+				continue
+			}
+
+			sem <- struct{}{}
 			wg.Add(1)
-			go func(dirName string) {
+			go func(parentDirName, childDirName string) {
 				defer wg.Done()
 				defer func() { <-sem }()
 
 				c := convert.Converter{
-					InputDirPath:  filepath.Join(inputDir, dirName),
-					OutputDirPath: filepath.Join(outputDir, dirName),
+					InputDirPath:  filepath.Join(inputDir, parentDirName, childDirName),
+					OutputDirPath: filepath.Join(outputDir, parentDirName, childDirName),
 					Concurrency:   concurrency,
-					Mode:          mode,
+					Mode:          converterMode,
 				}
 				if err := c.Run(); err != nil {
-					slog.Error(err.Error())
-					os.Exit(1)
+					slog.Warn(err.Error())
+					return
 				}
-			}(e.Name())
+
+				u := upload.Uploader{
+					DirPath:       filepath.Join(outputDir, parentDirName, childDirName),
+					ParentDirName: parentDirName,
+					ChildDirName:  childDirName,
+					Mode:          uploaderMode,
+					Root:          root,
+					User:          user,
+					Password:      password,
+				}
+				if err := u.Run(); err != nil {
+					slog.Warn(err.Error())
+					return
+				}
+			}(pe.Name(), ce.Name())
 		}
 	}
 	wg.Wait()

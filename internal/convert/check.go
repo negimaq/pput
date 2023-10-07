@@ -14,8 +14,10 @@ type deleteWhiteImages struct {
 	Converter
 }
 
+// Delete white images
+// imagemagick must be installed
 func (c deleteWhiteImages) run() error {
-	slog.Info("start runner", "type", "deleteWhiteImages", "path", c.InputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("start runner", "type", "deleteWhiteImages", "path", c.InputDirPath, "concurrency", c.Concurrency)
 
 	entries, err := os.ReadDir(c.InputDirPath)
 	if err != nil {
@@ -37,8 +39,6 @@ func (c deleteWhiteImages) run() error {
 					slog.Warn("white image deletion canceled", "path", inputFilePath)
 					return nil
 				default:
-					// Delete white images
-					// imagemagick must be installed
 					slog.Debug("checking white image", "path", inputFilePath)
 					args := []string{
 						"-format", "%[fx:255*mean]",
@@ -51,11 +51,11 @@ func (c deleteWhiteImages) run() error {
 					}
 					mean := string(out)
 					if mean == "255" {
-						slog.Info("deleting white image", "path", inputFilePath, "mean", mean)
 						if err := os.Remove(inputFilePath); err != nil {
 							slog.Error("failed to delete white image", "path", inputFilePath)
 							return err
 						}
+						slog.Info("white image deleted", "path", inputFilePath, "mean", mean)
 					}
 					return nil
 				}
@@ -67,7 +67,7 @@ func (c deleteWhiteImages) run() error {
 		return err
 	}
 
-	slog.Info("successfully terminate runner", "type", "deleteWhiteImages", "path", c.InputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("successfully terminate runner", "type", "deleteWhiteImages", "path", c.InputDirPath, "concurrency", c.Concurrency)
 
 	return nil
 }

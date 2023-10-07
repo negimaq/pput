@@ -23,7 +23,7 @@ func getImageSize(filePath string) (int, int, error) {
 	}
 	out, err := exec.Command("identify", checkArgs...).Output()
 	if err != nil {
-		slog.Error("failed to check white image", "path", filePath)
+		slog.Error("failed to check image size", "path", filePath)
 		return 0, 0, err
 	}
 	size := strings.Split(string(out), ",")
@@ -37,6 +37,7 @@ func getImageSize(filePath string) (int, int, error) {
 		slog.Error("failed to get height", "path", filePath)
 		return 0, 0, err
 	}
+	slog.Debug("image size retrieved", "path", filePath, "width", width, "height", height)
 
 	return width, height, nil
 }
@@ -45,8 +46,10 @@ type generateJPGImages struct {
 	Converter
 }
 
+// Convert image to JPG file
+// imagemagick must be installed
 func (c generateJPGImages) run() error {
-	slog.Info("start runner", "type", "generateJPGImages", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("start runner", "type", "generateJPGImages", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
 
 	// Create output dir
 	if err := os.MkdirAll(c.OutputDirPath, 0755); err != nil {
@@ -88,9 +91,6 @@ func (c generateJPGImages) run() error {
 						}
 					}
 
-					// Convert image to JPG file
-					// imagemagick must be installed
-					slog.Debug("generating JPG image", "path", inputFilePath)
 					otherArgs := []string{
 						"-format", "jpg",
 						"-quality", "80%",
@@ -106,6 +106,8 @@ func (c generateJPGImages) run() error {
 						slog.Error("failed to generate JPG image", "path", inputFilePath, "msg", string(out))
 						return err
 					}
+					slog.Debug("JPG image generated", "path", inputFilePath)
+
 					return nil
 				}
 			})
@@ -125,8 +127,9 @@ func (c generateJPGImages) run() error {
 			return err
 		}
 	}
+	slog.Debug("JPG files renamed", "path", c.OutputDirPath)
 
-	slog.Info("successfully terminate runner", "type", "generateJPGImages", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("successfully terminate runner", "type", "generateJPGImages", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
 
 	return nil
 }

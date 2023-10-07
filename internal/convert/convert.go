@@ -20,7 +20,7 @@ type Converter struct {
 }
 
 func (c Converter) Run() error {
-	slog.Info("start converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("start converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode)
 
 	files, err := os.ReadDir(c.InputDirPath)
 	if err != nil {
@@ -43,18 +43,19 @@ func (c Converter) Run() error {
 		return err
 	}
 
-	if c.Mode == "jpg" {
+	switch c.Mode {
+	case "jpg":
 		generateRunner := &generateJPGImages{
 			Converter: c,
 		}
 		if err := generateRunner.run(); err != nil {
 			return err
 		}
-	} else {
+	default:
 		return errors.New("specified mode does not exist")
 	}
 
-	slog.Info("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
+	slog.Debug("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode)
 
 	return nil
 }
