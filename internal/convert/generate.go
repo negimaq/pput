@@ -16,7 +16,6 @@ import (
 // Check image size
 // imagemagick must be installed
 func getImageSize(filePath string) (int, int, error) {
-	slog.Debug("checking image size", "path", filePath)
 	checkArgs := []string{
 		"-format", "%w,%h",
 		filePath,

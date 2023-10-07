@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -29,9 +30,16 @@ func (c deleteWhiteImages) run() error {
 
 	for _, e := range entries {
 		if !e.IsDir() {
-			sem <- struct{}{}
 			inputFilePath := filepath.Join(c.InputDirPath, e.Name())
+			if e.Name() == "Thumbs.db" {
+				if err := os.Remove(inputFilePath); err != nil {
+					return err
+				}
+				slog.Info("unnecessary file deleted", "path", inputFilePath)
+				continue
+			}
 
+			sem <- struct{}{}
 			eg.Go(func() error {
 				defer func() { <-sem }()
 				select {
@@ -39,7 +47,6 @@ func (c deleteWhiteImages) run() error {
 					slog.Warn("white image deletion canceled", "path", inputFilePath)
 					return nil
 				default:
-					slog.Debug("checking white image", "path", inputFilePath)
 					args := []string{
 						"-format", "%[fx:255*mean]",
 						inputFilePath,
@@ -49,14 +56,20 @@ func (c deleteWhiteImages) run() error {
 						slog.Error("failed to check white image", "path", inputFilePath)
 						return err
 					}
-					mean := string(out)
-					if mean == "255" {
+					mean, err := strconv.ParseFloat(string(out), 64)
+					if err != nil {
+						return err
+					}
+					if 254.9 <= mean {
 						if err := os.Remove(inputFilePath); err != nil {
 							slog.Error("failed to delete white image", "path", inputFilePath)
 							return err
 						}
 						slog.Info("white image deleted", "path", inputFilePath, "mean", mean)
+					} else {
+						slog.Debug("white image checked", "path", inputFilePath, "mean", mean)
 					}
+
 					return nil
 				}
 			})
