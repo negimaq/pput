@@ -1,7 +1,7 @@
 # pput: pre-processing and uploading tool for cloud storage
 
 ```bash
-cat <<EOF > test
+cat <<EOF > .env
 TZ=Asia/Tokyo
 ROOT=
 USER=
