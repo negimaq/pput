@@ -12,6 +12,17 @@ type uploadToNextcloud struct {
 	Uploader
 }
 
+// Check if the file name is included in the file list
+func checkFileExist(fileList []os.FileInfo, targetFileName string) bool {
+	for _, f := range fileList {
+		if f.Name() == targetFileName {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (u uploadToNextcloud) run() error {
 	slog.Debug("start runner", "type", "uploadToNextcloud", "path", u.DirPath, "parentDirName", u.ParentDirName, "childDirName", u.ChildDirName)
 
@@ -28,9 +39,6 @@ func (u uploadToNextcloud) run() error {
 	fis, err := c.ReadDir(targetDirPath)
 	if err != nil {
 		return err
-	} else if 0 < len(fis) {
-		slog.Warn("there are already uploaded files (skip)", "path", targetDirPath)
-		return nil
 	}
 
 	entries, err := os.ReadDir(u.DirPath)
@@ -42,6 +50,11 @@ func (u uploadToNextcloud) run() error {
 		p := filepath.Join(u.DirPath, e.Name())
 		if e.IsDir() {
 			slog.Warn("the entry is directory (skip)", "path", p)
+			continue
+		}
+
+		if checkFileExist(fis, e.Name()) {
+			slog.Debug("the entry already uploaded (skip)", "path", p)
 			continue
 		}
 
