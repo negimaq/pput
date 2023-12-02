@@ -118,15 +118,17 @@ func (c generateJPGImages) run() error {
 	}
 
 	// Rename JPG files
-	for i, v := range entries {
-		oldPath := filepath.Join(c.OutputDirPath, getFilenameWithoutExtension(v.Name())+".jpg")
-		newPath := filepath.Join(c.OutputDirPath, fmt.Sprintf("%05d.jpg", i+1))
+	if c.IsRename {
+		for i, v := range entries {
+			oldPath := filepath.Join(c.OutputDirPath, getFilenameWithoutExtension(v.Name())+".jpg")
+			newPath := filepath.Join(c.OutputDirPath, fmt.Sprintf("%05d.jpg", i+1))
 
-		if err := os.Rename(oldPath, newPath); err != nil {
-			return err
+			if err := os.Rename(oldPath, newPath); err != nil {
+				return err
+			}
 		}
+		slog.Debug("JPG files renamed", "path", c.OutputDirPath)
 	}
-	slog.Debug("JPG files renamed", "path", c.OutputDirPath)
 
 	slog.Debug("successfully terminate runner", "type", "generateJPGImages", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency)
 

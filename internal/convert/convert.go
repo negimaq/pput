@@ -17,10 +17,11 @@ type Converter struct {
 	OutputDirPath string
 	Concurrency   int
 	Mode          string
+	IsRename      bool
 }
 
 func (c Converter) Run() error {
-	slog.Debug("start converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode)
+	slog.Debug("start converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode, "isRename", c.IsRename)
 
 	files, err := os.ReadDir(c.InputDirPath)
 	if err != nil {
@@ -55,7 +56,7 @@ func (c Converter) Run() error {
 		return errors.New("specified mode does not exist")
 	}
 
-	slog.Debug("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode)
+	slog.Debug("successfully terminate converter", "inputDirPath", c.InputDirPath, "outputDirPath", c.OutputDirPath, "concurrency", c.Concurrency, "mode", c.Mode, "isRename", c.IsRename)
 
 	return nil
 }

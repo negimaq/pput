@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -129,7 +130,7 @@ func main() {
 
 			sem <- struct{}{}
 			wg.Add(1)
-			go func(parentDirName, childDirName string) {
+			go func(parentDirName, childDirName string, isRename bool) {
 				defer wg.Done()
 				defer func() { <-sem }()
 
@@ -138,6 +139,7 @@ func main() {
 					OutputDirPath: filepath.Join(outputDir, parentDirName, childDirName),
 					Concurrency:   concurrency,
 					Mode:          converterMode,
+					IsRename:      isRename,
 				}
 				if err := c.Run(); err != nil {
 					slog.Warn(err.Error())
@@ -157,7 +159,7 @@ func main() {
 					slog.Warn(err.Error())
 					return
 				}
-			}(pe.Name(), ce.Name())
+			}(pe.Name(), ce.Name(), !strings.HasPrefix(ce.Name(), "_"))
 		}
 	}
 	wg.Wait()
