@@ -134,6 +134,11 @@ func main() {
 				defer wg.Done()
 				defer func() { <-sem }()
 
+				outputChildDirName := childDirName
+				if !isRename {
+					outputChildDirName = childDirName[1:]
+				}
+
 				c := convert.Converter{
 					InputDirPath:  filepath.Join(inputDir, parentDirName, childDirName),
 					OutputDirPath: filepath.Join(outputDir, parentDirName, childDirName),
@@ -149,7 +154,7 @@ func main() {
 				u := upload.Uploader{
 					DirPath:       filepath.Join(outputDir, parentDirName, childDirName),
 					ParentDirName: parentDirName,
-					ChildDirName:  childDirName,
+					ChildDirName:  outputChildDirName,
 					Mode:          uploaderMode,
 					Root:          root,
 					User:          user,
