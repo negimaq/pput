@@ -110,6 +110,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	sem := make(chan struct{}, numConverters)
+	uploaderMutex := sync.Mutex{}
 
 	for _, pe := range parentEntries {
 		if !pe.IsDir() {
@@ -159,6 +160,7 @@ func main() {
 					Root:          root,
 					User:          user,
 					Password:      password,
+					Mutex:         uploaderMutex,
 				}
 				if err := u.Run(); err != nil {
 					slog.Warn(err.Error())

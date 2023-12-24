@@ -33,9 +33,12 @@ func (u uploadToNextcloud) run() error {
 		return err
 	}
 
+	u.Mutex.Lock()
 	if err := c.MkdirAll(targetDirPath, 0644); err != nil {
 		return err
 	}
+	u.Mutex.Unlock()
+
 	fis, err := c.ReadDir(targetDirPath)
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ package upload
 import (
 	"errors"
 	"log/slog"
+	"sync"
 )
 
 type runner interface {
@@ -18,6 +19,7 @@ type Uploader struct {
 	Root          string
 	User          string
 	Password      string
+	Mutex         sync.Mutex
 }
 
 func (u Uploader) Run() error {
